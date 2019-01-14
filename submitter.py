@@ -324,16 +324,26 @@ class Submitter(object):
         elif run_type == 'maker':
             t1 = 'MakerOutput'        
         outputDir = '{0:}/{1:}/{2:}'.format(t0,t1,name)
+        if not os.path.isdir(outputDir):
+            print 'no output directory created, going to create:\n%s'%(outputDir)
+            os.system('mkdir %s'%(outputDir))
         return outputDir
     
     def getLogFile(self,name):
+        if not os.path.isdir('./logs'):
+            print 'no directory for log files created, going to create:\n./logs'
+            os.system('mkdir logs')
         log = 'logs/submit_{0:}.log'.format(name)
         return log
 
     def submitReader(self,outputDir,config,logFile,isExecute=True):
         if os.path.isdir(outputDir):
-            os.system('rm -rf %s'%(outputDir))
-        cmd = 'hsg5frameworkReadCxAOD  {0:} {1:} | tee {2:}'.format(outputDir,config,logFile)
+            print 'Error outputDir already exits'
+            exit()
+            #os.system('rm -rf %s'%(outputDir))
+        if os.path.isfile(logFile):
+            os.system('rm %s'%(logFile))
+        cmd = 'hsg5frameworkReadCxAOD  {0:} {1:} 2>&1 | tee {2:}'.format(outputDir,config,logFile)
         print cmd
         if isExecute:
             os.system(cmd)
