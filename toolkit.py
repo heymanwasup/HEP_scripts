@@ -367,7 +367,7 @@ def Searcher(data,nameMap={}):
     return Search
 
 def main():
-
+  pass
 
 if __name__ == '__main__':
   main()
