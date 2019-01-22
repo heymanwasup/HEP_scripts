@@ -219,7 +219,8 @@ class TimeCalculator(object):
   def __call__(self,fun):
     @functools.wraps(fun)
     def wrap(*args,**kw):
-      start = time.time()
+      print '\nStarted <{0:}>'.format(fun.__name__)
+      start = time.time()      
       result = fun(*args,**kw)
       end = time.time()
       if self.isOpen:
