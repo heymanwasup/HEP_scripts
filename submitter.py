@@ -314,7 +314,8 @@ class Submitter(object):
             t1 = 'MC16'+period[-1]
         #CONFIG="data/FrameworkExe/framework-${task}-2L-${perid}-TP.cfg"    
         
-        cfg = 'data/FrameworkExe/framework-{0:}-2L-{1:}-TP.cfg'.format(t0,t1)
+        #cfg = 'data/FrameworkExe/framework-{0:}-2L-{1:}-TP.cfg'.format(t0,t1)
+        cfg = 'data/CxAODReader_VHbb/framework-{0:}-0L-Merged-{1:}.cfg'.format(t0,t1)
         return cfg
 
     def getOutputDir(self,run_type,name):
@@ -339,8 +340,8 @@ class Submitter(object):
     def submitReader(self,outputDir,config,logFile,isExecute=True):
         if os.path.isdir(outputDir):
             print 'Error outputDir already exits'
-            exit()
-            #os.system('rm -rf %s'%(outputDir))
+            #exit()
+            os.system('rm -rf %s'%(outputDir))
         if os.path.isfile(logFile):
             os.system('rm %s'%(logFile))
         cmd = 'hsg5frameworkReadCxAOD  {0:} {1:} 2>&1 | tee {2:}'.format(outputDir,config,logFile)
