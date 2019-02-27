@@ -1,0 +1,1 @@
+export PYTHONPATH=$PWD/HEP_scripts:$PYTHONPATH
