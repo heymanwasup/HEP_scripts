@@ -322,9 +322,9 @@ class Submitter(object):
         if run_type == 'reader':
             t1 = 'ReaderOutput'
         elif run_type == 'maker':
-            t1 = 'MakerOutput'        
+            t1 = 'MakerOutput'
         outputDir = '{0:}/{1:}/{2:}'.format(t0,t1,name)
-        if not os.path.isdir(outputDir):
+        if not os.path.isdir('%s/%s'%(t0,t1)):
             print 'no output directory created, going to create:\n%s'%(outputDir)
             os.system('mkdir %s'%(outputDir))
         return outputDir
@@ -339,6 +339,7 @@ class Submitter(object):
     def submitReader(self,outputDir,config,logFile,isExecute=True):
         if os.path.isdir(outputDir):
             print 'Error outputDir already exits'
+            print outputDir
             exit()
             #os.system('rm -rf %s'%(outputDir))
         if os.path.isfile(logFile):
