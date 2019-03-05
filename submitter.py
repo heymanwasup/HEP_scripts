@@ -318,15 +318,16 @@ class Submitter(object):
         return cfg
 
     def getOutputDir(self,run_type,name):
-        t0 = os.environ['PWD']        
+        outputDir = os.environ['PWD']        
         if run_type == 'reader':
-            t1 = 'ReaderOutput'
+            outputDir += '/ReaderOutput'
         elif run_type == 'maker':
-            t1 = 'MakerOutput'
-        outputDir = '{0:}/{1:}/{2:}'.format(t0,t1,name)
-        if not os.path.isdir('%s/%s'%(t0,t1)):
+            outputDir += '/MakerOutput'
+        
+        if not os.path.isdir(outputDir):
             print 'no output directory created, going to create:\n%s'%(outputDir)
-            os.system('mkdir %s'%(outputDir))
+            os.system('mkdir -p  %s'%(outputDir))
+        outputDir += '/%s'%(name)
         return outputDir
     
     def getLogFile(self,name):
