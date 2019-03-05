@@ -4,6 +4,64 @@
 
 
 import os,re,commands
+import ROOT as R
+
+class CutflowHandler(object):
+    def __init__(self,outputDir,sampleDir,run_mode):
+        basename = os.path.basename(os.path.split((sampleDir+'/'))[0])
+        self.cutflowDir = '%s/%s'%(outputDir,basename)
+
+        if not os.path.isdir(self.cutflowDir):
+            os.system('mkdir -p %s'%(self.cutflowDir))        
+
+        self.sampleDir = sampleDir
+        self.run_mode = run_mode
+        
+
+    def PrintCutflow(self,cxaod_file,root_file):
+        if self.run_mode == 'maker':
+            f = '%s/%s'%(self.sampleDir,cxaod_file)
+            self.printF(f,'CutFlow')
+            self.printF(f,'CutFlow_Nominal')
+        elif self.run_mode == 'reader':
+            f = '%s/%s'%(self.sampleDir,root_file)
+            self.printF(f, 'CutFlow')
+            self.printF(f, 'CutFlow/Nominal')
+        else:
+            print 'unknown run_mode'            
+            print self.run_mode
+            raise RuntimeError()
+            
+    def printF(self,tfile,subDir):
+        tf = R.TFile(tfile,'read')
+        
+        tdir = tf.Get(subDir)
+        print tf
+        print subDir
+        print tdir
+        for key in tdir.GetListOfKeys():
+            obj = key.ReadObj()
+            if isinstance(obj, R.TH1):
+                name = obj.GetName()
+                hist_name = '%s/%s'%(subDir,name)
+                tab_name = re.sub('/', '_', hist_name)
+                self.dump(tf, hist_name, tab_name)
+        tf.Close()
+
+    def dump(self,tf,hist,tab):    
+        h = tf.Get(hist)
+        N = h.GetNbinsX()
+        table = []
+        for n in range(1,N+1):
+            label = h.GetXaxis().GetBinLabel(n)
+            content = h.GetBinContent(n)        
+            table.append('%s,%s'%(label,content))
+        text_file_name = '%s/%s.CSV'%(self.cutflowDir,tab)
+        with open(text_file_name,'w') as f:
+            for line in table:
+                print >>f,line
+        print 'Cutflow table created\t%s'%(text_file_name)
+
 
 class HaddSamples(object):
     def __init__(self,submitDir):
@@ -368,7 +426,9 @@ class Submitter(object):
         hadder = HaddSamples(self._outputDir)
         hadder.Hadd(driver)
 
-
+    def Cutflow(self,outputDir,cxaod_file,root_file):
+        CutflowHandler(outputDir,self._outputDir, self._run_type).PrintCutflow(cxaod_file, root_file)
+        
 
 def main():
   pass 
