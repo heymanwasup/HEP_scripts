@@ -409,7 +409,9 @@ class Submitter(object):
             os.system(cmd)
     def submitMaker(self,outputDir,config,logFile,isExecute=True):
         if os.path.isdir(outputDir):
-            os.system('rm -rf %s'%(outputDir))
+            print 'Error outputDir already exits'
+            print outputDir
+            exit()
         cmd = 'hsg5framework --submitDir {0:} --config {1:} | tee {2:}'.format(outputDir,config,logFile)
         print cmd
         if isExecute:
