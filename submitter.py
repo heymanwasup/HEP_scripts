@@ -368,11 +368,12 @@ class Submitter(object):
         elif run_type == 'maker':
             t0 = 'run'
 
-        if period == 'mc16a' or period == 'mc16d':
+        if period == 'mc16a' or period == 'mc16d' or period == 'mc16e':
             t1 = 'MC16'+period[-1]
         #CONFIG="data/FrameworkExe/framework-${task}-2L-${perid}-TP.cfg"    
         
-        cfg = 'data/FrameworkExe/framework-{0:}-2L-{1:}-TP.cfg'.format(t0,t1)
+        #cfg = 'data/FrameworkExe/framework-{0:}-2L-{1:}-TP.cfg'.format(t0,t1)
+        cfg = 'data/FrameworkExe/framework-{0:}-2L-{1:}-TP-Harm2.cfg'.format(t0,t1)
         return cfg
 
     def getOutputDir(self,run_type,name):
