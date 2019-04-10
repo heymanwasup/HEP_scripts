@@ -28,9 +28,10 @@ class Submitter(object):
             t0 = 'read'
         elif run_type == 'maker':
             t0 = 'run'
+
         if period == 'mc16a' or period == 'mc16d' or period == 'mc16e':
-            t1 = 'MC16'+period[-1]                
-        cfg = 'data/CxAODReader_VHbb/framework-{0:}-0L-Merged-{1:}.cfg'.format(t0,t1)
+            t1 = 'MC16'+period[-1]
+        cfg = 'data/FrameworkExe/framework-{0:}-2L-{1:}-TP-Harm2.cfg'.format(t0,t1)
         return cfg
 
     def getOutputDir(self,run_type,name):
