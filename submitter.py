@@ -79,8 +79,19 @@ class Submitter(object):
     def checkJob(self,table_outputDir):
         CheckSamples(self._outputDir, table_outputDir).Stat()
 
-    def Resubmit(self,table_outputDir,queue='8nh'):        
-        CheckSamples(self._outputDir, table_outputDir).ResubmitFailed(queue)
+    def Resubmit(self,table_outputDir,driver,label=None,queue='8nh'):
+        if label == None:
+            label = ''
+
+        if driver == 'condor':
+            CheckSamples(self._outputDir, table_outputDir).Resubmit_Condor(label)
+
+        elif driver == 'LSF':
+            CheckSamples(self._outputDir, table_outputDir).Resubmit_LSF(label,queue)
+            
+        else:
+            print 'driver must be condor or LSF, %s found'%(driver)
+            raise ValueError()
 
     def Hadd(self,driver='direct'):
         hadder = HaddSamples(self._outputDir)
@@ -88,7 +99,7 @@ class Submitter(object):
 
     def Cutflow(self,outputDir,cxaod_file,root_file):
         CutflowHandler(outputDir,self._outputDir, self._run_type).PrintCutflow(cxaod_file, root_file)
-        
+
 
 def main():
   pass 

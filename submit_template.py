@@ -1,24 +1,36 @@
 from submitter import Submitter
 
 def main():
-    run_mode = 'cutflow'  # submit/check/resubmit/hadd 
-    submit_to = 'maker' # reader/maker
-    period = 'mc16a' # mc16a/mc16d
-    hadd_driver = 'condor'
-    #output_dir = 'Reader_CxAOD_FTAG2_2L_mc16d_fullSys_condor6'
-    output_dir = 'Maker_CxAOD_FTAG2_2L_mc16a_test_harmonized_1.0'
-    
-    #output_dir = 'Reader_CxAOD_FTAG2_2L_mc16a_test_harmonized_1.0'
 
+    run_mode = 'resubmit'  # submit/check/resubmit/hadd/cutflow
+    submit_to = 'reader' # reader/maker
+    period = 'mc16a' # mc16[ade]
+
+    #merge by samples
+    hadd_driver = 'direct' # condor or direct
+
+    #resubmit failed jobs according to the jobs_failed.CSV which generated with run_mode = 'check'
+    resubmit_driver = 'condor' # condor or LSF
+    resubmit_label = 2
+
+    #outout dir
+    output_dir = 'Reader_0L_mc16a_EventLabelling_data_r1.0'
+
+    submitter = Submitter(period, submit_to, output_dir)
     if run_mode == 'resubmit':
-        Submitter(period, submit_to, output_dir).Resubmit('./output')
+        submitter.Resubmit('./output',resubmit_driver,resubmit_label)
+
     elif run_mode == 'check':
-        Submitter(period, submit_to, output_dir).checkJob('./output')
+        submitter.checkJob('./output')
+
     elif run_mode == 'submit':
-        Submitter(period, submit_to, output_dir).Submit(1)
+        submitter.Submit(1)
+
     elif run_mode == 'hadd':
-        Submitter(period, submit_to, output_dir).Hadd(hadd_driver)
+        submitter.Hadd(hadd_driver)
+
     elif run_mode == 'cutflow':
-            Submitter(period, submit_to, output_dir).Cutflow('./CountCutflow', cxaod_file='hist-CxAOD.root', root_file='hist-ttbar.root')
+        submitter.Cutflow('./CountCutflow', cxaod_file='hist-CxAOD.root', root_file='hist-ttbar.root')
+
 if __name__ == '__main__':        
     main()

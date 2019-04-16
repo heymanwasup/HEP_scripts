@@ -83,6 +83,7 @@ lsetup "root 6.04.16-x86_64-slc6-gcc49-opt"
 ID=`expr $1 + 1`
 CMD=`cat {0:} | head -n $ID | tail -n 1`
 eval ${{CMD}}
+echo HAPPY-$1
         '''.format(self._condor_commands)
         
         self._condor_script_text = '''executable              = run.sh
@@ -154,8 +155,34 @@ class CheckSamples(object):
         self.outputDir = '{0:}/StatusCheck_{1:}'.format(outputDir,self.submitDir_name)
         if not os.path.isdir(self.outputDir):
             os.system('mkdir -p {0:}'.format(self.outputDir))
-# cd /afs/cern.ch/work/c/chenc/CxAODFW/CxAODFramework_tag_r31-10_1/run/ReaderOutput/submitDir_reader_mc16d_TT_validation_2/submit && bsub -q 8nh -L /bin/bash /afs/cern.ch/work/c/chenc/CxAODFW/CxAODFramework_tag_r31-10_1/run/ReaderOutput/submitDir_reader_mc16d_TT_validation_2/submit/run 0
-    def ResubmitFailed(self,queue):
+
+    def Resubmit_Condor(self,label):
+
+        failed_csv = '{0:}/jobs_failed.CSV'.format(self.outputDir)
+        with open(failed_csv,'r') as f:
+            data = f.readlines()        
+        queues = ','.join([queue[:-1] for queue in data])
+        condor_script = '''
+executable              = ../submit/run
+universe                = vanilla
+log                     = submit/run.log
+output                  = submit/log-$(Process).out
+error                   = submit/log-$(Process).err
+initialdir              = {0:}
+arguments               = $(Process)
+
+accounting_group = long
+queue Process in ({1:})        
+        '''.format(self.submitDir,queues)
+        condor_script_name = 're_submit{0:}.condor'.format(label)
+        resubmit_path = '{0:}/resubmit'.format(self.submitDir)
+        if not os.path.isdir(resubmit_path):
+            os.system('mkdir -p {0:}'.format(resubmit_path))
+        with open('{0:}/{1:}'.format(resubmit_path,condor_script_name),'w') as f:
+            print >>f,condor_script
+        os.system('cd {0:}; condor_submit {1:}'.format(resubmit_path,condor_script_name))
+
+    def Resubmit_LSF(self,label,queue):
         submit_dir = '{0:}/submit'.format(self.submitDir)
         submit_sh = '{0:}/run'.format(submit_dir)
         failed_csv = '{0:}/jobs_failed.CSV'.format(self.outputDir)
