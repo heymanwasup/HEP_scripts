@@ -94,7 +94,7 @@ error                   = log-$(Process).err
 initialdir              = {0:}
 arguments               = $(Process)
 
-accounting_group = group_atlas.uiowa
+accounting_group = long
 queue {{0:}}
         '''.format(self._condor_submitDir)
 
@@ -165,7 +165,7 @@ class CheckSamples(object):
         condor_script = '''
 executable              = ../submit/run
 universe                = vanilla
-log                     = submit/run.log
+log                     = resubmit/run.log
 output                  = submit/log-$(Process).out
 error                   = submit/log-$(Process).err
 initialdir              = {0:}
