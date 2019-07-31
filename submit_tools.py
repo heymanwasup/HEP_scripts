@@ -63,18 +63,21 @@ class HaddSamples(object):
         self.submitDir = submitDir
         
         self._outputDir = '%s/hadd/samples'%(submitDir)            
+        self._condor_submitDir = '%s/hadd_condor'%(self.submitDir)
         os.system('mkdir -p %s'%(self._outputDir))
 
         self._dataDir = '%s/%s'%(submitDir,'fetch')
         self._exe = commands.getstatusoutput('which hadd')[1]
         self._jobs = self.getHaddJobs()
 
-    def Init_condor(self):
-        self._condor_submitDir = '%s/hadd_condor'%(self.submitDir)
-        os.system('mkdir -p %s'%(self._condor_submitDir))
-        self._condor_commands = '%s/commands.txt'%(self._condor_submitDir)
-        self._condor_sh = '%s/run.sh'%(self._condor_submitDir)
-        self._condor_script = '%s/submit.condor'%(self._condor_submitDir)
+    def Init_condor(self,condor_submitDir,result_outputDir):
+        
+        os.system('mkdir -p %s'%(condor_submitDir))
+        os.system('mkdir -p %s'%(result_outputDir))
+
+        self._condor_commands = '%s/commands.txt'%(condor_submitDir)
+        self._condor_sh = '%s/run.sh'%(condor_submitDir)
+        self._condor_script = '%s/submit.condor'%(condor_submitDir)
         
         self._condor_sh_text = '''#!/bin/bash
 export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase        
@@ -96,7 +99,7 @@ arguments               = $(Process)
 
 accounting_group = long
 queue {{0:}}
-        '''.format(self._condor_submitDir)
+        '''.format(condor_submitDir)
 
     def getHaddJobs(self):
         files = os.listdir(self._dataDir)        
@@ -105,7 +108,7 @@ queue {{0:}}
             job_info = re.findall('hist-(.+)-([0-9]+).root', f)
             if  len(job_info) != 0:
                 
-                sample = '%s/hist-%s.root'%(self._outputDir, job_info[0][0])
+                sample = 'hist-%s.root'%(job_info[0][0])
                 if not sample in jobs:
                     jobs[sample] = []
                 jobs[sample].append('%s/%s'%(self._dataDir, f))
@@ -113,27 +116,34 @@ queue {{0:}}
 
 
     def Hadd(self,driver):
+        condor_submitDir = self._condor_submitDir
+        jobs = self._jobs
+        result_outputDir = self._outputDir
+        self.runHadd(jobs,driver,condor_submitDir,result_outputDir)
+
+    def runHadd(jobs,driver,condor_submitDir,result_outputDir):
+        self.Init_condor(condor_submitDir,result_outputDir)        
+
         cmds = []
         if driver == 'direct':
             for sum_file,files in self._jobs.iteritems():
                 if len(files)==1:
                     #print 'ln -s %s %s'%(sum_file,files[0])
-                    cmd = 'ln -s %s %s'%(files[0],sum_file)                
+                    cmd = 'ln -s %s %s/%s'%(files[0],result_outputDir,sum_file)
                     os.system(cmd)
                 else:
                     in_files = ' '.join(files)                    
-                    os.system('%s %s %s'%(self._exe,sum_file,in_files))
-        elif driver == 'condor':
-            self.Init_condor()
+                    os.system('%s %s/%s %s'%(self._exe,result_outputDir,sum_file,in_files))
+        elif driver == 'condor':            
             njobs = 0
             with open(self._condor_commands,'w') as f:
                 for sum_file,files in self._jobs.iteritems():
                     if len(files)==1:
-                        cmd = 'ln -s %s %s'%(files[0],sum_file)                
-                        os.system(cmd)   
+                        cmd = 'ln -s %s %s/%s'%(files[0],result_outputDir,sum_file)
+                        os.system(cmd)
                     else:
                         in_files = ' '.join(files)                    
-                        print >>f,'%s %s %s'%('hadd',sum_file,in_files)
+                        print >>f,'%s %s/%s %s'%('hadd',result_outputDir,sum_file,in_files)
                         njobs += 1
                 print self._condor_commands,'Created!'
             
@@ -146,7 +156,66 @@ queue {{0:}}
                 print >>f,self._condor_script_text.format(njobs)
             print self._condor_script,'Created'
 
-            os.system('cd {0:};condor_submit {1:}'.format(self._condor_submitDir,self._condor_script))
+            os.system('cd {0:};condor_submit {1:}'.format(condor_submitDir,self._condor_script))
+
+    def CheckFiles(self,table_outputDir):
+        hadd_status = ['target file,size,status']
+        hadd_failed = ['target file,size,status']
+
+        for base_name in self._jobs:
+            hadd_file = '%s/%s'%(self._outputDir,base_name)
+            fsize,status = self.checkFile(hadd_file)
+            line = ','.join([base_name,str(fsize),status])
+            hadd_status.append(line)
+            if status != 'Good':
+                hadd_failed.append(line)
+
+        tables = {
+            'status' : hadd_status,
+            'failed' : hadd_failed,
+        }
+
+        self.dumpTables(tables, table_outputDir)
+
+    def Hadd_resubmit(self,driver,table_outputDir,condor_submitDir=None,result_outputDir=None):
+        if result_outputDir == None:
+            result_outputDir = self._outputDir
+        if condor_submitDir == None:
+            condor_submitDir = '%s/hadd_condor_resubmit'%(self.submitDir)
+
+        failed_csv = '{0:}/hadd_failed.CSV'.format(table_outputDir)
+        failed_samples = []
+        with open(failed_csv,'r') as f:
+            for line in f.readlines()[1:]:
+                sample = line.split(',')[0]
+                failed_samples.append(sample)
+
+        failed_jobs = { key:self._jobs[key] for key in failed_samples}
+        
+        self.runHadd(failed_jobs, driver, condor_submitDir, result_outputDir)
+
+
+
+    def checkFile(self,tfile):
+        if not os.path.isfile(tfile):
+            return -1,"None"
+        else:
+            f = R.TFile(tfile,'read')
+            fsize = os.stat(tfile).st_size
+            if f.IsZombie():
+                return fsize,"ZombieFile"
+            elif f.TestBit(R.TFile.kRecovered):
+                return fsize,"NotClosedFile"
+            else:
+                return fsize,"Good"        
+
+    def dumpTables(self,tables,table_outputDir):
+        for name,table in tables.iteritems():
+            table_path = '{0:}/hadd_{1:}.CSV'.format(table_outputDir,name)
+            with open(table_path, 'w') as f:
+                for line in table:
+                    print >>f,line
+                print table_path,'\n\tgenerated'
 
 class CheckSamples(object):
     def __init__(self,submitDir,outputDir):

@@ -97,6 +97,14 @@ class Submitter(object):
         hadder = HaddSamples(self._outputDir)
         hadder.Hadd(driver)
 
+    def checkHaddJob(self,table_outputDir):
+        hadder = HaddSamples(self._outputDir)
+        hadder.CheckFiles(table_outputDir)
+
+    def ReSubmitHadd(self,table_outputDir,driver,label=''):
+        hadder = HaddSamples(self._outputDir)
+        hadder.Hadd_resubmit(driver,table_outputDir)
+
     def Cutflow(self,outputDir,cxaod_file,root_file):
         CutflowHandler(outputDir,self._outputDir, self._run_type).PrintCutflow(cxaod_file, root_file)
 
