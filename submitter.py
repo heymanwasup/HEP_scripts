@@ -105,9 +105,10 @@ class Submitter(object):
 
     def ReSubmitHadd(self,driver,table_outputDir):
         hadder = HaddSamples(self._outputDir)
-        condor_submitDir = './output/condor_test_{0:}'.format(self._period)
-        result_outputDir = condor_submitDir
-        hadder.Hadd_resubmit(driver,table_outputDir,condor_submitDir,result_outputDir)
+        # condor_submitDir = './output/condor_test_{0:}'.format(self._period)
+        # result_outputDir = condor_submitDir
+        # hadder.Hadd_resubmit(driver,table_outputDir,condor_submitDir,result_outputDir)
+        hadder.Hadd_resubmit(driver,table_outputDir)
 
     def Cutflow(self,outputDir,cxaod_file,root_file):
         CutflowHandler(outputDir,self._outputDir, self._run_type).PrintCutflow(cxaod_file, root_file)
