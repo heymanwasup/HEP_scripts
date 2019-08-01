@@ -60,6 +60,7 @@ class CutflowHandler(object):
 
 class HaddSamples(object):
     def __init__(self,submitDir):
+        self.hadd_opts = 'hadd -f -n 20'
         self.submitDir = submitDir
         
         self._outputDir = '%s/hadd/samples'%(submitDir)            
@@ -71,7 +72,7 @@ class HaddSamples(object):
         self._jobs = self.getHaddJobs()
 
     def Init_condor(self,condor_submitDir,result_outputDir):
-        
+
         os.system('mkdir -p %s'%(condor_submitDir))
         os.system('mkdir -p %s'%(result_outputDir))
 
@@ -121,12 +122,15 @@ queue {{0:}}
         result_outputDir = self._outputDir
         self.runHadd(jobs,driver,condor_submitDir,result_outputDir)
 
-    def runHadd(jobs,driver,condor_submitDir,result_outputDir):
+    def runHadd(self,jobs,driver,condor_submitDir,result_outputDir):
+        condor_submitDir = os.path.abspath(condor_submitDir)
+        result_outputDir = os.path.abspath(result_outputDir)
+        
         self.Init_condor(condor_submitDir,result_outputDir)        
 
         cmds = []
         if driver == 'direct':
-            for sum_file,files in self._jobs.iteritems():
+            for sum_file,files in jobs.iteritems():
                 if len(files)==1:
                     #print 'ln -s %s %s'%(sum_file,files[0])
                     cmd = 'ln -s %s %s/%s'%(files[0],result_outputDir,sum_file)
@@ -137,13 +141,13 @@ queue {{0:}}
         elif driver == 'condor':            
             njobs = 0
             with open(self._condor_commands,'w') as f:
-                for sum_file,files in self._jobs.iteritems():
+                for sum_file,files in jobs.iteritems():
                     if len(files)==1:
                         cmd = 'ln -s %s %s/%s'%(files[0],result_outputDir,sum_file)
                         os.system(cmd)
                     else:
                         in_files = ' '.join(files)                    
-                        print >>f,'%s %s/%s %s'%('hadd',result_outputDir,sum_file,in_files)
+                        print >>f,'%s %s/%s %s'%(self.hadd_opts,result_outputDir,sum_file,in_files)
                         njobs += 1
                 print self._condor_commands,'Created!'
             
@@ -154,13 +158,15 @@ queue {{0:}}
 
             with open(self._condor_script,'w') as f:
                 print >>f,self._condor_script_text.format(njobs)
-            print self._condor_script,'Created'
+            print self._condor_script,'Created!'
 
             os.system('cd {0:};condor_submit {1:}'.format(condor_submitDir,self._condor_script))
 
     def CheckFiles(self,table_outputDir):
+        table_outputDir = self.get_table_outputDir(table_outputDir)
+
         hadd_status = ['target file,size,status']
-        hadd_failed = ['target file,size,status']
+        hadd_failed = []
 
         for base_name in self._jobs:
             hadd_file = '%s/%s'%(self._outputDir,base_name)
@@ -177,7 +183,15 @@ queue {{0:}}
 
         self.dumpTables(tables, table_outputDir)
 
-    def Hadd_resubmit(self,driver,table_outputDir,condor_submitDir=None,result_outputDir=None):
+    def get_table_outputDir(self,table_outputDir):        
+        submitDir_name = os.path.split(os.path.split(self.submitDir + '/')[0])[1]
+        res = '{0:}/StatusCheck_{1:}'.format(table_outputDir,submitDir_name)
+        commands.getstatusoutput('[ -d {0:} ] || mkdir -p {0:}'.format(res))
+        return res
+
+    def Hadd_resubmit(self,driver,table_outputDir,condor_submitDir=None,result_outputDir=None):        
+        table_outputDir = self.get_table_outputDir(table_outputDir)
+
         if result_outputDir == None:
             result_outputDir = self._outputDir
         if condor_submitDir == None:
@@ -186,7 +200,7 @@ queue {{0:}}
         failed_csv = '{0:}/hadd_failed.CSV'.format(table_outputDir)
         failed_samples = []
         with open(failed_csv,'r') as f:
-            for line in f.readlines()[1:]:
+            for line in f.readlines():
                 sample = line.split(',')[0]
                 failed_samples.append(sample)
 
@@ -198,14 +212,14 @@ queue {{0:}}
 
     def checkFile(self,tfile):
         if not os.path.isfile(tfile):
-            return -1,"None"
+            return -1,"not exist"
         else:
             f = R.TFile(tfile,'read')
             fsize = os.stat(tfile).st_size
             if f.IsZombie():
-                return fsize,"ZombieFile"
+                return fsize,"zombie file"
             elif f.TestBit(R.TFile.kRecovered):
-                return fsize,"NotClosedFile"
+                return fsize,"not closed file"
             else:
                 return fsize,"Good"        
 

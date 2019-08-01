@@ -9,6 +9,7 @@ from submit_tools import CheckSamples
 
 class Submitter(object):
     def __init__(self,period,run_type,outputDir):
+        self._period = period
         self._config = self.getConfig(period,run_type,outputDir)
         self._outputDir = self.getOutputDir(run_type,outputDir)
         self._logFile = self.getLogFile(outputDir)
@@ -98,12 +99,15 @@ class Submitter(object):
         hadder.Hadd(driver)
 
     def checkHaddJob(self,table_outputDir):
+        os.system('mkdir -p %s'%(table_outputDir))
         hadder = HaddSamples(self._outputDir)
         hadder.CheckFiles(table_outputDir)
 
-    def ReSubmitHadd(self,table_outputDir,driver,label=''):
+    def ReSubmitHadd(self,driver,table_outputDir):
         hadder = HaddSamples(self._outputDir)
-        hadder.Hadd_resubmit(driver,table_outputDir)
+        condor_submitDir = './output/condor_test_{0:}'.format(self._period)
+        result_outputDir = condor_submitDir
+        hadder.Hadd_resubmit(driver,table_outputDir,condor_submitDir,result_outputDir)
 
     def Cutflow(self,outputDir,cxaod_file,root_file):
         CutflowHandler(outputDir,self._outputDir, self._run_type).PrintCutflow(cxaod_file, root_file)
